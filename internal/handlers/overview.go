@@ -28,17 +28,6 @@ type serviceStatus struct {
 	Status string
 }
 
-type clusterStats struct {
-	TotalWorkers        int
-	OnlineWorkers       int
-	OfflineWorkers      int
-	DrainingWorkers     int
-	ProvisioningWorkers int
-	ActiveJobs          int
-	AvgCPU              float64
-	AvgRAM              float64
-}
-
 func Overview(repo *repository.WorkerRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workers, _ := repo.List(r.Context())

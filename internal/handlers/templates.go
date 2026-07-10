@@ -11,35 +11,104 @@ import (
 	"github.com/srayansh-gupta/compiling-orchestrator/web"
 )
 
-var tmpl *template.Template
+type pageEntry struct {
+	tmpl     *template.Template
+	execName string
+}
+
+var (
+	pageRegistry    map[string]*pageEntry
+	partialRegistry map[string]*template.Template
+)
 
 func InitTemplates() error {
 	sub, err := fs.Sub(web.FS, "templates")
 	if err != nil {
 		return err
 	}
-	tmpl, err = template.New("").Funcs(funcMap()).ParseFS(sub,
-		"layout.html",
-		"login.html",
-		"overview.html",
-		"workers.html",
-		"add_worker.html",
-		"worker_detail.html",
-		"partials/stats.html",
-		"partials/services.html",
-		"partials/notifications.html",
-		"partials/worker_card.html",
-		"partials/worker_metrics.html",
-		"partials/provision_log.html",
-	)
-	return err
+	fns := funcMap()
+
+	type pageConfig struct {
+		files    []string
+		execName string
+	}
+
+	pageDefs := map[string]pageConfig{
+		"login.html": {
+			files:    []string{"login.html"},
+			execName: "login.html",
+		},
+		"overview.html": {
+			files: []string{
+				"layout.html", "overview.html",
+				"partials/stats.html", "partials/services.html", "partials/notifications.html",
+			},
+			execName: "overview.html",
+		},
+		"workers.html": {
+			files:    []string{"layout.html", "workers.html", "partials/worker_card.html"},
+			execName: "workers.html",
+		},
+		"add_worker.html": {
+			files:    []string{"layout.html", "add_worker.html"},
+			execName: "add_worker.html",
+		},
+		"worker_detail.html": {
+			files: []string{
+				"layout.html", "worker_detail.html",
+				"partials/worker_metrics.html", "partials/provision_log.html",
+			},
+			execName: "worker_detail.html",
+		},
+	}
+
+	pageRegistry = make(map[string]*pageEntry, len(pageDefs))
+	for name, cfg := range pageDefs {
+		t, err := template.New("").Funcs(fns).ParseFS(sub, cfg.files...)
+		if err != nil {
+			return fmt.Errorf("parse page %s: %w", name, err)
+		}
+		pageRegistry[name] = &pageEntry{tmpl: t, execName: cfg.execName}
+	}
+
+	partialDefs := map[string]string{
+		"stats-grid":     "partials/stats.html",
+		"service-status": "partials/services.html",
+		"notifications":  "partials/notifications.html",
+		"workers-list":   "partials/worker_card.html",
+		"worker-metrics": "partials/worker_metrics.html",
+		"provision-log":  "partials/provision_log.html",
+	}
+
+	partialRegistry = make(map[string]*template.Template, len(partialDefs))
+	for name, file := range partialDefs {
+		t, err := template.New("").Funcs(fns).ParseFS(sub, file)
+		if err != nil {
+			return fmt.Errorf("parse partial %s: %w", name, err)
+		}
+		partialRegistry[name] = t
+	}
+	return nil
 }
 
 func render(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	if e, ok := pageRegistry[name]; ok {
+		if err := e.tmpl.ExecuteTemplate(w, e.execName, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
+
+	if t, ok := partialRegistry[name]; ok {
+		if err := t.ExecuteTemplate(w, name, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Error(w, "template not found: "+name, http.StatusInternalServerError)
 }
 
 func funcMap() template.FuncMap {
@@ -75,15 +144,9 @@ func funcMap() template.FuncMap {
 			}
 			return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 		},
-		"cpuColor": func(v float64) string {
-			return progressColor(v)
-		},
-		"ramColor": func(v float64) string {
-			return progressColor(v)
-		},
-		"progressColor": func(v float64) string {
-			return progressColor(v)
-		},
+		"cpuColor":      func(v float64) string { return progressColor(v) },
+		"ramColor":      func(v float64) string { return progressColor(v) },
+		"progressColor": progressColor,
 		"notifBadge": func(t string) string {
 			switch t {
 			case "error", "offline", "down":
@@ -94,9 +157,7 @@ func funcMap() template.FuncMap {
 				return "badge-provisioning"
 			}
 		},
-		"string": func(s models.ProvisionStatus) string {
-			return string(s)
-		},
+		"string": func(s models.ProvisionStatus) string { return string(s) },
 		"not": func(v interface{}) bool {
 			switch val := v.(type) {
 			case bool:
