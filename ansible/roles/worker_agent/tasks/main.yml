@@ -1,0 +1,52 @@
+---
+- name: Create agent install directory
+  file:
+    path: "{{ agent_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create agent config directory
+  file:
+    path: "{{ agent_config_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Download Worker Agent binary
+  get_url:
+    url: "{{ dashboard_url }}/static/agent/linux-amd64"
+    dest: "{{ agent_install_dir }}/worker-agent"
+    mode: '0755'
+    force: yes
+
+- name: Write agent environment config
+  copy:
+    dest: "{{ agent_config_dir }}/config.env"
+    mode: '0600'
+    content: |
+      WORKER_UUID={{ worker_uuid }}
+      API_KEY={{ agent_api_key }}
+      DASHBOARD_URL={{ dashboard_url }}
+      AGENT_PORT={{ agent_port }}
+
+- name: Create Worker Agent systemd service
+  copy:
+    dest: /etc/systemd/system/worker-agent.service
+    content: |
+      [Unit]
+      Description=Judge0 Worker Agent
+      After=network.target docker.service nomad.service
+      Wants=docker.service nomad.service
+
+      [Service]
+      EnvironmentFile={{ agent_config_dir }}/config.env
+      ExecStart={{ agent_install_dir }}/worker-agent
+      Restart=always
+      RestartSec=5
+      User=root
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes

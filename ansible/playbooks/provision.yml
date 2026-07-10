@@ -1,0 +1,46 @@
+---
+- name: Provision Judge0 Worker
+  hosts: workers
+  become: yes
+  gather_facts: yes
+  vars:
+    agent_install_dir: /opt/worker-agent
+    agent_config_dir: /etc/worker-agent
+    nomad_version: "1.7.5"
+    dashboard_url: "{{ dashboard_url }}"
+    worker_uuid: "{{ worker_uuid }}"
+    agent_api_key: "{{ agent_api_key }}"
+    agent_port: "{{ agent_port | default('9090') }}"
+
+  roles:
+    - docker
+    - nomad_client
+    - worker_agent
+
+  post_tasks:
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Enable and start Nomad
+      systemd:
+        name: nomad
+        enabled: yes
+        state: started
+
+    - name: Enable and start Worker Agent
+      systemd:
+        name: worker-agent
+        enabled: yes
+        state: started
+
+    - name: Wait for Worker Agent to be healthy
+      uri:
+        url: "http://localhost:{{ agent_port }}/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 10
+      delay: 3

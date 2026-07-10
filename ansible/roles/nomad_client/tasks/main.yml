@@ -1,0 +1,67 @@
+---
+- name: Install required packages
+  apt:
+    name:
+      - unzip
+      - curl
+    state: present
+
+- name: Download Nomad
+  get_url:
+    url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip"
+    dest: /tmp/nomad.zip
+    mode: '0644'
+
+- name: Unzip Nomad
+  unarchive:
+    src: /tmp/nomad.zip
+    dest: /usr/local/bin/
+    remote_src: yes
+
+- name: Create Nomad config directory
+  file:
+    path: /etc/nomad.d
+    state: directory
+    mode: '0755'
+
+- name: Create Nomad data directory
+  file:
+    path: /opt/nomad/data
+    state: directory
+    mode: '0755'
+
+- name: Write Nomad client config
+  copy:
+    dest: /etc/nomad.d/nomad.hcl
+    content: |
+      data_dir  = "/opt/nomad/data"
+      log_level = "INFO"
+
+      client {
+        enabled = true
+        options {
+          "docker.privileged.enabled" = "true"
+        }
+      }
+
+- name: Create Nomad systemd service
+  copy:
+    dest: /etc/systemd/system/nomad.service
+    content: |
+      [Unit]
+      Description=Nomad Client
+      After=network.target docker.service
+      Wants=docker.service
+
+      [Service]
+      ExecStart=/usr/local/bin/nomad agent -config=/etc/nomad.d/nomad.hcl
+      Restart=always
+      RestartSec=5
+      LimitNOFILE=65536
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
