@@ -80,6 +80,9 @@
       <form method="POST" action="/workers/{{.Worker.ID}}/restart-agent">
         <button class="btn btn-secondary btn-sm">Restart Agent</button>
       </form>
+      <form method="POST" action="/workers/{{.Worker.ID}}/restart-judge">
+        <button class="btn btn-secondary btn-sm">Restart Judge</button>
+      </form>
       {{if eq (string .Worker.ProvisionStatus) "online"}}
       <form method="POST" action="/workers/{{.Worker.ID}}/drain">
         <button class="btn btn-secondary btn-sm">Drain</button>

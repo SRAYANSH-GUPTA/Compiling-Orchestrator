@@ -37,7 +37,7 @@
           <path d="M6 10h.01M6 14h.01M10 10h8M10 14h4"/>
         </svg>
         Workers
-        {{if gt .WorkerCount 0}}<span style="margin-left:auto;font-size:11px;color:var(--muted)">{{.WorkerCount}}</span>{{end}}
+        {{if hasWorkers .WorkerCount}}<span style="margin-left:auto;font-size:11px;color:var(--muted)">{{.WorkerCount}}</span>{{end}}
       </a>
       <div class="nav-section">Actions</div>
       <a href="/workers/add" class="nav-link {{if eq .Page "add-worker"}}active{{end}}">

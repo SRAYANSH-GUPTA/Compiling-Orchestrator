@@ -67,6 +67,7 @@ func main() {
 		r.Post("/workers/{id}/restart-docker", ah.RestartDocker)
 		r.Post("/workers/{id}/restart-nomad", ah.RestartNomad)
 		r.Post("/workers/{id}/restart-agent", ah.RestartAgent)
+		r.Post("/workers/{id}/restart-judge", ah.RestartJudge)
 		r.Post("/workers/{id}/drain", ah.Drain)
 		r.Post("/workers/{id}/resume", ah.Resume)
 		r.Post("/workers/{id}/update", ah.Update)

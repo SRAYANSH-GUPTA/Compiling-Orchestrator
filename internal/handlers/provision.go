@@ -166,6 +166,36 @@ func (h *ProvisionHandler) runProvision(workerID, ip, sshUser, sshPass, workerUU
 		return
 	}
 
+	logStep("ssh-key", "running", "Installing SSH public key on worker...")
+	privKey, pubKey, err := provision.GetOrCreateSystemSSHKey(filepath.Join("config", "id_rsa"))
+	if err != nil {
+		logStep("ssh-key", "failed", "SSH key generation failed: "+err.Error())
+		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
+		return
+	}
+	if err := provision.InstallSSHKey(ip, sshUser, sshPass, pubKey); err != nil {
+		logStep("ssh-key", "failed", "Failed to install SSH key: "+err.Error())
+		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
+		return
+	}
+	logStep("ssh-key", "ok", "SSH public key installed successfully")
+
+	logStep("ssh-disable-password", "running", "Disabling SSH password authentication on worker...")
+	if err := provision.DisablePasswordAuth(ip, sshUser, privKey); err != nil {
+		logStep("ssh-disable-password", "failed", "Failed to disable password auth: "+err.Error())
+		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
+		return
+	}
+	logStep("ssh-disable-password", "ok", "SSH password authentication disabled on worker")
+
+	logStep("db-cleanup", "running", "Removing encrypted password from database...")
+	if err := h.repo.UpdateSSHKey(ctx, workerID, pubKey); err != nil {
+		logStep("db-cleanup", "failed", "Failed to remove encrypted password: "+err.Error())
+		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
+		return
+	}
+	logStep("db-cleanup", "ok", "Database cleaned up")
+
 	logStep("done", "ok", "Provisioning complete. Waiting for agent heartbeat...")
 	h.repo.UpdateStatus(ctx, workerID, models.StatusProvisioned)
 	h.repo.AddNotification(ctx, &models.Notification{

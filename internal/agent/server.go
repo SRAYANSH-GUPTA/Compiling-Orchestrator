@@ -77,7 +77,13 @@ func (s *Server) restart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "service required", http.StatusBadRequest)
 		return
 	}
-	out, err := exec.Command("systemctl", "restart", body.Service).CombinedOutput()
+	var cmd *exec.Cmd
+	if body.Service == "judge" {
+		cmd = exec.Command("sh", "-c", "docker ps -q --filter name=judge | xargs -r docker restart")
+	} else {
+		cmd = exec.Command("systemctl", "restart", body.Service)
+	}
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		jsonResp(w, map[string]interface{}{"ok": false, "error": string(out)})
 		return

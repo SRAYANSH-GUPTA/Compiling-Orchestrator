@@ -54,6 +54,10 @@ func (h *ActionHandler) RestartAgent(w http.ResponseWriter, r *http.Request) {
 	h.agentAction(w, r, "/restart", map[string]string{"service": "worker-agent"}, "restart_agent")
 }
 
+func (h *ActionHandler) RestartJudge(w http.ResponseWriter, r *http.Request) {
+	h.agentAction(w, r, "/restart", map[string]string{"service": "judge"}, "restart_judge")
+}
+
 func (h *ActionHandler) Drain(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	h.repo.UpdateStatus(r.Context(), id, models.StatusDraining)

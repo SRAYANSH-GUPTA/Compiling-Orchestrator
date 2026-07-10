@@ -179,6 +179,20 @@ func funcMap() template.FuncMap {
 			}
 			return b
 		},
+		"hasWorkers": func(v interface{}) bool {
+			if v == nil {
+				return false
+			}
+			switch val := v.(type) {
+			case int:
+				return val > 0
+			case int64:
+				return val > 0
+			case float64:
+				return val > 0
+			}
+			return false
+		},
 	}
 }
 
