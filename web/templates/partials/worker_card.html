@@ -1,0 +1,111 @@
+{{define "workers-list"}}
+<div id="workers-list">
+{{if not .Workers}}
+<div class="empty-state">
+  <div class="empty-state-icon">🖥️</div>
+  <div class="empty-state-title">No workers yet</div>
+  <p style="margin-bottom:16px">Add your first worker to get started.</p>
+  <a href="/workers/add" class="btn btn-primary">Add Worker</a>
+</div>
+{{else}}
+<div class="workers-grid">
+{{range .Workers}}
+<div class="worker-card health-{{.HealthColor}}">
+  <div class="card-header">
+    <div>
+      <div class="card-title">{{.Name}}</div>
+      <div class="card-sub">{{.IPAddress}}{{if .Hostname}} · {{.Hostname}}{{end}}</div>
+    </div>
+    <span class="badge badge-{{.ProvisionStatus}}">{{.ProvisionStatus}}</span>
+  </div>
+  <div class="card-body">
+    <div class="metric-row">
+      <span class="metric-label">CPU</span>
+      <span class="metric-value">{{printf "%.1f" .CPUUsage}}%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill {{progressColor .CPUUsage}}" style="width:{{printf "%.0f" .CPUUsage}}%"></div>
+    </div>
+
+    <div class="metric-row" style="margin-top:10px">
+      <span class="metric-label">RAM</span>
+      <span class="metric-value">{{printf "%.1f" .RAMUsage}}%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill {{progressColor .RAMUsage}}" style="width:{{printf "%.0f" .RAMUsage}}%"></div>
+    </div>
+
+    <div class="metric-row" style="margin-top:10px">
+      <span class="metric-label">Disk</span>
+      <span class="metric-value">{{printf "%.1f" .DiskUsage}}%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill {{progressColor .DiskUsage}}" style="width:{{printf "%.0f" .DiskUsage}}%"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px">
+      <div>
+        <div class="metric-label">Docker</div>
+        <div class="metric-value" style="font-size:12px">
+          <span class="dot {{if eq .DockerStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+          {{.DockerStatus}}
+        </div>
+      </div>
+      <div>
+        <div class="metric-label">Nomad</div>
+        <div class="metric-value" style="font-size:12px">
+          <span class="dot {{if eq .NomadStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+          {{.NomadStatus}}
+        </div>
+      </div>
+      <div>
+        <div class="metric-label">Judge</div>
+        <div class="metric-value" style="font-size:12px">
+          <span class="dot {{if eq .JudgeStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+          {{.JudgeStatus}}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+      <div>
+        <div class="metric-label">Running Jobs</div>
+        <div class="metric-value">{{.RunningJobs}}</div>
+      </div>
+      <div>
+        <div class="metric-label">Success Rate</div>
+        <div class="metric-value">{{printf "%.1f" .SuccessRate}}%</div>
+      </div>
+    </div>
+
+    {{if .LastHeartbeat}}
+    <div class="metric-row" style="margin-top:10px">
+      <span class="metric-label">Last heartbeat</span>
+      <span class="metric-value" style="font-size:12px;color:var(--muted)">{{formatTime .LastHeartbeat}}</span>
+    </div>
+    {{end}}
+  </div>
+  <div class="card-footer">
+    <a href="/workers/{{.ID}}" class="btn btn-secondary btn-sm">Details</a>
+    {{if eq (string .ProvisionStatus) "pending"}}
+    <form method="POST" action="/workers/{{.ID}}/provision" style="display:inline">
+      <button class="btn btn-primary btn-sm">Provision</button>
+    </form>
+    {{end}}
+    {{if eq (string .ProvisionStatus) "online"}}
+    <form method="POST" action="/workers/{{.ID}}/drain" style="display:inline">
+      <button class="btn btn-secondary btn-sm">Drain</button>
+    </form>
+    {{end}}
+    {{if eq (string .ProvisionStatus) "draining"}}
+    <form method="POST" action="/workers/{{.ID}}/resume" style="display:inline">
+      <button class="btn btn-primary btn-sm">Resume</button>
+    </form>
+    {{end}}
+  </div>
+</div>
+{{end}}
+</div>
+{{end}}
+</div>
+{{end}}

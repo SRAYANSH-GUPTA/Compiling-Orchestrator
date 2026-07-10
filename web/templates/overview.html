@@ -1,0 +1,42 @@
+{{template "layout" .}}
+{{define "title"}}Overview — Judge0 Cluster{{end}}
+{{define "page-title"}}Overview{{end}}
+
+{{define "topbar-actions"}}
+<div id="cluster-health-badge"
+     hx-get="/api/cluster-health"
+     hx-trigger="load, every 10s"
+     hx-swap="outerHTML">
+  <div class="cluster-health"><span class="dot dot-gray"></span> Loading...</div>
+</div>
+{{end}}
+
+{{define "content"}}
+<div id="stats-grid"
+     hx-get="/api/stats"
+     hx-trigger="load, every 10s"
+     hx-swap="outerHTML">
+  {{template "stats-grid" .}}
+</div>
+
+<div class="two-col" style="margin-top:20px">
+  <div class="page-card-wide">
+    <div class="section-title">Cluster Services</div>
+    <div id="service-status"
+         hx-get="/api/service-status"
+         hx-trigger="load, every 15s"
+         hx-swap="outerHTML">
+      {{template "service-status" .}}
+    </div>
+  </div>
+  <div class="page-card-wide">
+    <div class="section-title">Recent Notifications</div>
+    <div id="notifications"
+         hx-get="/api/notifications"
+         hx-trigger="load, every 15s"
+         hx-swap="outerHTML">
+      {{template "notifications" .}}
+    </div>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,15 @@
+{{define "service-status"}}
+<div id="service-status">
+  {{range .Services}}
+  <div class="metric-row">
+    <div class="metric-label" style="display:flex;align-items:center;gap:8px">
+      <span class="dot {{if eq .Status "up"}}dot-green{{else if eq .Status "degraded"}}dot-yellow{{else}}dot-red{{end}}"></span>
+      {{.Name}}
+    </div>
+    <div class="metric-value">{{.Status}}</div>
+  </div>
+  {{else}}
+  <div style="color:var(--muted);font-size:13px">No service data available</div>
+  {{end}}
+</div>
+{{end}}

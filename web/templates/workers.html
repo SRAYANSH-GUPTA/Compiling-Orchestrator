@@ -1,0 +1,16 @@
+{{template "layout" .}}
+{{define "title"}}Workers — Judge0 Cluster{{end}}
+{{define "page-title"}}Workers{{end}}
+
+{{define "topbar-actions"}}
+<a href="/workers/add" class="btn btn-primary btn-sm">+ Add Worker</a>
+{{end}}
+
+{{define "content"}}
+<div id="workers-list"
+     hx-get="/api/workers"
+     hx-trigger="load, every 10s"
+     hx-swap="outerHTML">
+  {{template "workers-list" .}}
+</div>
+{{end}}

@@ -1,0 +1,116 @@
+{{template "layout" .}}
+{{define "title"}}{{.Worker.Name}} — Judge0 Cluster{{end}}
+{{define "page-title"}}{{.Worker.Name}}{{end}}
+
+{{define "topbar-actions"}}
+<a href="/workers" class="btn btn-secondary btn-sm">← Workers</a>
+{{end}}
+
+{{define "content"}}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+  <h2 style="font-size:18px;font-weight:700">{{.Worker.Name}}</h2>
+  <span class="badge badge-{{.Worker.ProvisionStatus}}">{{.Worker.ProvisionStatus}}</span>
+  <span class="dot {{if eq .Worker.HealthColor "green"}}dot-green{{else if eq .Worker.HealthColor "yellow"}}dot-yellow{{else}}dot-red{{end}}"></span>
+</div>
+
+<div class="two-col" style="margin-bottom:20px">
+  <div class="page-card-wide">
+    <div class="section-title">System Information</div>
+    <div class="system-info-grid">
+      <div class="info-item"><div class="info-item-label">IP Address</div><div class="info-item-value">{{.Worker.IPAddress}}</div></div>
+      <div class="info-item"><div class="info-item-label">Hostname</div><div class="info-item-value">{{or .Worker.Hostname "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">CPU Model</div><div class="info-item-value">{{or .Worker.CPUModel "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">CPU Cores</div><div class="info-item-value">{{if .Worker.CPUCores}}{{.Worker.CPUCores}}{{else}}—{{end}}</div></div>
+      <div class="info-item"><div class="info-item-label">RAM</div><div class="info-item-value">{{formatBytes .Worker.TotalRAM}}</div></div>
+      <div class="info-item"><div class="info-item-label">Disk</div><div class="info-item-value">{{formatBytes .Worker.TotalDisk}}</div></div>
+      <div class="info-item"><div class="info-item-label">OS</div><div class="info-item-value">{{or .Worker.OSVersion "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">Kernel</div><div class="info-item-value">{{or .Worker.KernelVersion "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">Docker</div><div class="info-item-value">{{or .Worker.DockerVersion "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">Nomad</div><div class="info-item-value">{{or .Worker.NomadVersion "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">Agent</div><div class="info-item-value">{{or .Worker.WorkerVersion "—"}}</div></div>
+      <div class="info-item"><div class="info-item-label">Uptime</div><div class="info-item-value">{{.Worker.UptimeStr}}</div></div>
+    </div>
+  </div>
+
+  <div class="page-card-wide">
+    <div class="section-title">Live Metrics</div>
+    <div id="worker-metrics"
+         hx-get="/api/workers/{{.Worker.ID}}/metrics"
+         hx-trigger="load, every 5s"
+         hx-swap="outerHTML">
+      {{template "worker-metrics" .Worker}}
+    </div>
+  </div>
+</div>
+
+<div class="two-col" style="margin-bottom:20px">
+  <div class="page-card-wide">
+    <div class="section-title">Execution Metrics</div>
+    <div class="system-info-grid">
+      <div class="info-item"><div class="info-item-label">Running Containers</div><div class="info-item-value">{{.Worker.RunningJobs}}</div></div>
+      <div class="info-item"><div class="info-item-label">Total Jobs</div><div class="info-item-value">{{.Worker.TotalJobs}}</div></div>
+      <div class="info-item"><div class="info-item-label">Failed Jobs</div><div class="info-item-value" style="color:var(--red)">{{.Worker.FailedJobs}}</div></div>
+      <div class="info-item"><div class="info-item-label">Success Rate</div><div class="info-item-value" style="color:var(--green)">{{printf "%.1f" .Worker.SuccessRate}}%</div></div>
+      <div class="info-item"><div class="info-item-label">Avg Runtime</div><div class="info-item-value">{{printf "%.0f" .Worker.AvgRuntime}}ms</div></div>
+    </div>
+  </div>
+
+  <div class="page-card-wide">
+    <div class="section-title">Actions</div>
+    <div class="actions-grid">
+      <form method="POST" action="/workers/{{.Worker.ID}}/test-connection">
+        <button class="btn btn-secondary btn-sm">Test Connection</button>
+      </form>
+      {{if eq (string .Worker.ProvisionStatus) "pending"}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/provision">
+        <button class="btn btn-primary btn-sm">Provision</button>
+      </form>
+      {{end}}
+      {{if eq (string .Worker.ProvisionStatus) "failed"}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/provision">
+        <button class="btn btn-primary btn-sm">Re-Provision</button>
+      </form>
+      {{end}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/restart-docker">
+        <button class="btn btn-secondary btn-sm">Restart Docker</button>
+      </form>
+      <form method="POST" action="/workers/{{.Worker.ID}}/restart-nomad">
+        <button class="btn btn-secondary btn-sm">Restart Nomad</button>
+      </form>
+      <form method="POST" action="/workers/{{.Worker.ID}}/restart-agent">
+        <button class="btn btn-secondary btn-sm">Restart Agent</button>
+      </form>
+      {{if eq (string .Worker.ProvisionStatus) "online"}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/drain">
+        <button class="btn btn-secondary btn-sm">Drain</button>
+      </form>
+      {{end}}
+      {{if eq (string .Worker.ProvisionStatus) "draining"}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/resume">
+        <button class="btn btn-primary btn-sm">Resume</button>
+      </form>
+      {{end}}
+      <form method="POST" action="/workers/{{.Worker.ID}}/clean-docker">
+        <button class="btn btn-secondary btn-sm">Clean Docker</button>
+      </form>
+      <form method="POST" action="/workers/{{.Worker.ID}}/update">
+        <button class="btn btn-secondary btn-sm">Update</button>
+      </form>
+      <form method="POST" action="/workers/{{.Worker.ID}}/remove"
+            onsubmit="return confirm('Remove this worker?')">
+        <button class="btn btn-danger btn-sm">Remove Worker</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="page-card-wide">
+  <div class="section-title">Provision Log</div>
+  <div id="provision-log"
+       hx-get="/api/workers/{{.Worker.ID}}/provision-log"
+       hx-trigger="load, every 3s"
+       hx-swap="outerHTML">
+    {{template "provision-log" .ProvisionLogs}}
+  </div>
+</div>
+{{end}}

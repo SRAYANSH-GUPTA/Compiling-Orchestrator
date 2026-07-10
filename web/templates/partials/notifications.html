@@ -1,0 +1,15 @@
+{{define "notifications"}}
+<div id="notifications">
+  {{range .Notifications}}
+  <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge {{notifBadge .Type}}">{{.Type}}</span>
+      <span style="font-size:13px;font-weight:500">{{.Title}}</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">{{.Message}}</div>
+  </div>
+  {{else}}
+  <div style="color:var(--muted);font-size:13px;padding:8px 0">No notifications</div>
+  {{end}}
+</div>
+{{end}}

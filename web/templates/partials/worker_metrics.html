@@ -1,0 +1,48 @@
+{{define "worker-metrics"}}
+<div id="worker-metrics">
+  <div class="metric-row">
+    <span class="metric-label">CPU</span>
+    <span class="metric-value">{{printf "%.1f" .CPUUsage}}%</span>
+  </div>
+  <div class="progress-bar" style="margin-bottom:10px">
+    <div class="progress-fill {{progressColor .CPUUsage}}" style="width:{{printf "%.0f" .CPUUsage}}%"></div>
+  </div>
+  <div class="metric-row">
+    <span class="metric-label">RAM</span>
+    <span class="metric-value">{{printf "%.1f" .RAMUsage}}%</span>
+  </div>
+  <div class="progress-bar" style="margin-bottom:10px">
+    <div class="progress-fill {{progressColor .RAMUsage}}" style="width:{{printf "%.0f" .RAMUsage}}%"></div>
+  </div>
+  <div class="metric-row">
+    <span class="metric-label">Disk</span>
+    <span class="metric-value">{{printf "%.1f" .DiskUsage}}%</span>
+  </div>
+  <div class="progress-bar" style="margin-bottom:10px">
+    <div class="progress-fill {{progressColor .DiskUsage}}" style="width:{{printf "%.0f" .DiskUsage}}%"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+    <div>
+      <div class="metric-label">Docker</div>
+      <div style="font-size:12px;margin-top:3px">
+        <span class="dot {{if eq .DockerStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+        {{.DockerStatus}}
+      </div>
+    </div>
+    <div>
+      <div class="metric-label">Nomad</div>
+      <div style="font-size:12px;margin-top:3px">
+        <span class="dot {{if eq .NomadStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+        {{.NomadStatus}}
+      </div>
+    </div>
+    <div>
+      <div class="metric-label">Judge</div>
+      <div style="font-size:12px;margin-top:3px">
+        <span class="dot {{if eq .JudgeStatus "running"}}dot-green{{else}}dot-red{{end}}"></span>
+        {{.JudgeStatus}}
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

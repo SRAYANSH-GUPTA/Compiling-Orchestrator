@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Judge0 Cluster</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-title">Judge0 Cluster</div>
+    <div class="login-sub">Control plane for distributed code execution</div>
+    {{if .Error}}
+    <div class="alert alert-error">{{.Error}}</div>
+    {{end}}
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" type="text" name="username" autocomplete="username" autofocus required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;margin-top:8px">
+        Sign In
+      </button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

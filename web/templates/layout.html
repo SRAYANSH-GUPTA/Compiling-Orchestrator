@@ -1,0 +1,70 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{block "title" .}}Judge0 Cluster{{end}}</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+        <path d="M7 8h.01M11 8l4 0"/>
+        <path d="M7 12h.01M11 12h6"/>
+      </svg>
+      Judge0 Cluster
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Dashboard</div>
+      <a href="/" class="nav-link {{if eq .Page "overview"}}active{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Overview
+      </a>
+      <a href="/workers" class="nav-link {{if eq .Page "workers"}}active{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="6" width="20" height="12" rx="2"/>
+          <path d="M6 10h.01M6 14h.01M10 10h8M10 14h4"/>
+        </svg>
+        Workers
+        {{if gt .WorkerCount 0}}<span style="margin-left:auto;font-size:11px;color:var(--muted)">{{.WorkerCount}}</span>{{end}}
+      </a>
+      <div class="nav-section">Actions</div>
+      <a href="/workers/add" class="nav-link {{if eq .Page "add-worker"}}active{{end}}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        Add Worker
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center">Sign Out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">{{block "page-title" .}}Dashboard{{end}}</span>
+      <div class="topbar-actions">
+        {{block "topbar-actions" .}}{{end}}
+      </div>
+    </header>
+    <div class="content">
+      {{block "content" .}}{{end}}
+    </div>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

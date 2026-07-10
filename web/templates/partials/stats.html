@@ -1,0 +1,36 @@
+{{define "stats-grid"}}
+<div id="stats-grid" class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Workers</div>
+    <div class="stat-value">{{.TotalWorkers}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Online</div>
+    <div class="stat-value green">{{.OnlineWorkers}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Offline</div>
+    <div class="stat-value red">{{.OfflineWorkers}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Draining</div>
+    <div class="stat-value yellow">{{.DrainingWorkers}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Provisioning</div>
+    <div class="stat-value blue">{{.ProvisioningWorkers}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active Jobs</div>
+    <div class="stat-value">{{.ActiveJobs}}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg CPU</div>
+    <div class="stat-value {{cpuColor .AvgCPU}}">{{printf "%.1f" .AvgCPU}}%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg RAM</div>
+    <div class="stat-value {{ramColor .AvgRAM}}">{{printf "%.1f" .AvgRAM}}%</div>
+  </div>
+</div>
+{{end}}
