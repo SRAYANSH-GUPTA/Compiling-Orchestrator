@@ -373,6 +373,38 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "Judge Gateway API",
+                    "item": [
+                        {
+                            "name": "Execute Code Submission",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"submissionId\": \"uuid-123-456\",\n  \"sourceCode\": \"I2luY2x1ZGUgPGlvc3RyZWFtPgoKaW50IG1haW4oKSB7CiAgICBzdGQ6OmNvdXQgPDwgIjEwXG4iOwogICAgcmV0dXJuIDA7Cn0=\",\n  \"language\": \"cpp\",\n  \"testcases\": [\n    {\n      \"id\": \"tc1\",\n      \"stdin\": \"\",\n      \"cpuLimit\": 1.0,\n      \"memoryLimit\": 256\n    }\n  ]\n}"
+                                },
+                                "url": {
+                                    "raw": "{{dashboard_url}}/api/judge/execute",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "judge",
+                                        "execute"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
                 }
             ]
         },

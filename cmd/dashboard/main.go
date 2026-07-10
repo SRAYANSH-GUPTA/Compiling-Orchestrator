@@ -39,6 +39,7 @@ func main() {
 	repo := repository.NewWorkerRepo(pool)
 	ph := handlers.NewProvisionHandler(repo, cfg)
 	ah := handlers.NewActionHandler(repo)
+	jgh := handlers.NewJudgeGatewayHandler(repo)
 
 	go handlers.StartOfflineWatcher(ctx, repo)
 
@@ -52,6 +53,7 @@ func main() {
 	r.Get("/login", handlers.LoginPage)
 	r.Post("/login", handlers.LoginPost)
 	r.Get("/logout", handlers.Logout)
+	r.Post("/api/judge/execute", jgh.Execute)
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Middleware)
