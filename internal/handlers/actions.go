@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -132,4 +133,110 @@ func (h *ActionHandler) agentPost(worker *models.Worker, path string, payload in
 		return fmt.Errorf("agent returned %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func (h *ActionHandler) UpdateAll(w http.ResponseWriter, r *http.Request) {
+	workers, err := h.repo.List(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var onlineWorkers []*models.Worker
+	for _, wk := range workers {
+		if wk.ProvisionStatus == models.StatusOnline {
+			onlineWorkers = append(onlineWorkers, wk)
+		}
+	}
+
+	if len(onlineWorkers) == 0 {
+		http.Redirect(w, r, "/workers", http.StatusFound)
+		return
+	}
+
+	go h.runRollingUpdate(onlineWorkers)
+
+	h.repo.AddAuditLog(r.Context(), "update_all_initiated", "", fmt.Sprintf("Started rolling update for %d workers", len(onlineWorkers)))
+	http.Redirect(w, r, "/workers", http.StatusFound)
+}
+
+func (h *ActionHandler) runRollingUpdate(workers []*models.Worker) {
+	ctx := context.Background()
+	for _, wk := range workers {
+		h.repo.AddNotification(ctx, &models.Notification{
+			Type:     "info",
+			Title:    "Updating Worker",
+			Message:  fmt.Sprintf("Starting rolling update for %s (%s)", wk.Name, wk.IPAddress),
+			WorkerID: wk.ID,
+		})
+
+		if err := h.agentPost(wk, "/update", nil); err != nil {
+			h.repo.AddNotification(ctx, &models.Notification{
+				Type:     "error",
+				Title:    "Update Failed",
+				Message:  fmt.Sprintf("Failed to trigger update on %s: %v. Rolling update aborted.", wk.Name, err),
+				WorkerID: wk.ID,
+			})
+			return
+		}
+
+		healthy := false
+		timeout := time.After(3 * time.Minute)
+		ticker := time.NewTicker(5 * time.Second)
+
+		var m struct {
+			DockerStatus string `json:"docker_status"`
+			NomadStatus  string `json:"nomad_status"`
+			JudgeStatus  string `json:"judge_status"`
+		}
+
+	pollLoop:
+		for {
+			select {
+			case <-timeout:
+				ticker.Stop()
+				h.repo.AddNotification(ctx, &models.Notification{
+					Type:     "error",
+					Title:    "Update Timeout",
+					Message:  fmt.Sprintf("Worker %s failed to become healthy within timeout. Rolling update aborted.", wk.Name),
+					WorkerID: wk.ID,
+				})
+				return
+			case <-ticker.C:
+				url := fmt.Sprintf("http://%s:9090/health", wk.IPAddress)
+				req, err := http.NewRequest("GET", url, nil)
+				if err != nil {
+					continue
+				}
+				req.Header.Set("X-API-Key", wk.APIKey)
+
+				client := &http.Client{Timeout: 5 * time.Second}
+				resp, err := client.Do(req)
+				if err != nil {
+					continue
+				}
+
+				if resp.StatusCode == 200 {
+					json.NewDecoder(resp.Body).Decode(&m)
+					resp.Body.Close()
+					if m.DockerStatus == "running" && m.NomadStatus == "running" && m.JudgeStatus == "running" {
+						healthy = true
+						break pollLoop
+					}
+				} else {
+					resp.Body.Close()
+				}
+			}
+		}
+		ticker.Stop()
+
+		if healthy {
+			h.repo.AddNotification(ctx, &models.Notification{
+				Type:     "success",
+				Title:    "Worker Updated",
+				Message:  fmt.Sprintf("Worker %s successfully updated and is healthy.", wk.Name),
+				WorkerID: wk.ID,
+			})
+		}
+	}
 }

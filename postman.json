@@ -1,0 +1,599 @@
+{
+    "info": {
+        "name": "Judge0 Cluster Management API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Dashboard API",
+            "item": [
+                {
+                    "name": "Authentication",
+                    "item": [
+                        {
+                            "name": "Login",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/x-www-form-urlencoded"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "urlencoded",
+                                    "urlencoded": [
+                                        {
+                                            "key": "username",
+                                            "value": "admin",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "password",
+                                            "value": "admin123",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{dashboard_url}}/login",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "login"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Logout",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/logout",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "logout"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Workers Management",
+                    "item": [
+                        {
+                            "name": "Add Worker",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/x-www-form-urlencoded"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "urlencoded",
+                                    "urlencoded": [
+                                        {
+                                            "key": "name",
+                                            "value": "Worker-01",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "ip_address",
+                                            "value": "192.168.1.50",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "ssh_username",
+                                            "value": "ubuntu",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "ssh_password",
+                                            "value": "ubuntu123",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/add",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "add"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Provision Worker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/provision",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "provision"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Test Connection",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/test-connection",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "test-connection"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Restart Docker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/restart-docker",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "restart-docker"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Restart Nomad",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/restart-nomad",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "restart-nomad"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Restart Agent",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/restart-agent",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "restart-agent"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Restart Judge",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/restart-judge",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "restart-judge"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Drain Worker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/drain",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "drain"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Resume Worker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/resume",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "resume"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Update Worker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/update",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "update"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Clean Docker Cache",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/clean-docker",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "clean-docker"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Update All Workers (Rolling)",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/update-all",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "update-all"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "Remove Worker",
+                            "request": {
+                                "method": "POST",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/workers/{{worker_id}}/remove",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "workers",
+                                        "{{worker_id}}",
+                                        "remove"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Agent Heartbeat Gateway",
+                    "item": [
+                        {
+                            "name": "Submit Heartbeat",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-API-Key",
+                                        "value": "{{worker_api_key}}"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"cpu_usage\": 12.5,\n  \"ram_usage\": 45.2,\n  \"disk_usage\": 60.1,\n  \"network_rx\": 10240,\n  \"network_tx\": 5120,\n  \"docker_status\": \"running\",\n  \"nomad_status\": \"running\",\n  \"judge_status\": \"running\",\n  \"running_jobs\": 2,\n  \"queue_length\": 0,\n  \"total_requests\": 150,\n  \"avg_runtime\": 250.5,\n  \"retry_count\": 0,\n  \"worker_version\": \"1.0.0\",\n  \"uptime\": 3600,\n  \"hostname\": \"worker-node-1\",\n  \"nomad_node_id\": \"nomad-uuid-placeholder\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{dashboard_url}}/api/heartbeat",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "heartbeat"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Metrics Exporter",
+                    "item": [
+                        {
+                            "name": "Prometheus Metrics",
+                            "request": {
+                                "method": "GET",
+                                "url": {
+                                    "raw": "{{dashboard_url}}/metrics/prometheus",
+                                    "host": [
+                                        "{{dashboard_url}}"
+                                    ],
+                                    "path": [
+                                        "metrics",
+                                        "prometheus"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Worker Agent API",
+            "item": [
+                {
+                    "name": "Health Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/health",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "health"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Real-time Metrics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/metrics",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "metrics"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Restart Service",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"service\": \"nomad\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/restart",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "restart"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Drain Node",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/drain",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "drain"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Resume Node",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/resume",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "resume"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Agent & Judge0",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/update",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "update"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Cleanup Docker Cache",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/cleanup",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "cleanup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Shutdown Daemon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{worker_api_key}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://{{worker_ip}}:9090/shutdown",
+                            "protocol": "http",
+                            "host": [
+                                "{{worker_ip}}"
+                            ],
+                            "port": "9090",
+                            "path": [
+                                "shutdown"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "dashboard_url",
+            "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "worker_id",
+            "value": "worker-uuid-here",
+            "type": "string"
+        },
+        {
+            "key": "worker_ip",
+            "value": "192.168.1.50",
+            "type": "string"
+        },
+        {
+            "key": "worker_api_key",
+            "value": "api-key-here",
+            "type": "string"
+        }
+    ]
+}

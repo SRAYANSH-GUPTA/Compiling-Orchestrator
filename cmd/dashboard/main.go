@@ -60,6 +60,7 @@ func main() {
 		r.Get("/workers", handlers.WorkersList(repo))
 		r.Get("/workers/add", handlers.AddWorkerPage())
 		r.Post("/workers/add", ph.AddWorker)
+		r.Post("/workers/update-all", ah.UpdateAll)
 
 		r.Get("/workers/{id}", handlers.WorkerDetail(repo))
 		r.Post("/workers/{id}/provision", ph.ProvisionWorker)

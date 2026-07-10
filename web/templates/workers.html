@@ -3,6 +3,9 @@
 {{define "page-title"}}Workers{{end}}
 
 {{define "topbar-actions"}}
+<form method="POST" action="/workers/update-all" style="display:inline" onsubmit="return confirm('Start rolling update for all online workers?')">
+  <button class="btn btn-secondary btn-sm" style="margin-right:8px">Update All</button>
+</form>
 <a href="/workers/add" class="btn btn-primary btn-sm">+ Add Worker</a>
 {{end}}
 
