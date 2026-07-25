@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	Username   = "admin"
-	Password   = "admin123"
+	Username   = ""
+	Password   = ""
 	cookieName = "session"
 	sessionTTL = 24 * time.Hour
 )
