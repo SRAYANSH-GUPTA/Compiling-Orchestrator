@@ -5,3 +5,6 @@ bin/
 /tmp/
 vendor/
 .DS_Store
+.env
+deploy.sh
+internal/auth/auth.go
