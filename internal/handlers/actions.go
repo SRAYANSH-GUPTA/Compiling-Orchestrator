@@ -9,16 +9,40 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/srayansh-gupta/compiling-orchestrator/internal/config"
 	"github.com/srayansh-gupta/compiling-orchestrator/internal/models"
 	"github.com/srayansh-gupta/compiling-orchestrator/internal/repository"
 )
 
 type ActionHandler struct {
 	repo *repository.WorkerRepo
+	cfg  *config.Config
 }
 
-func NewActionHandler(repo *repository.WorkerRepo) *ActionHandler {
-	return &ActionHandler{repo: repo}
+func NewActionHandler(repo *repository.WorkerRepo, cfg *config.Config) *ActionHandler {
+	return &ActionHandler{repo: repo, cfg: cfg}
+}
+
+// agentDo sends req to each candidate agent port until one answers. A worker's
+// agent binds the first free port from the same list, so which one it landed on
+// is not known ahead of time. Only connection-level failures fall through to the
+// next port; an HTTP response of any status means we found the agent.
+func (h *ActionHandler) agentDo(ip string, build func(url string) (*http.Request, error)) (*http.Response, error) {
+	var lastErr error
+	for _, port := range h.cfg.AgentPorts {
+		req, err := build(fmt.Sprintf("http://%s:%s", ip, port))
+		if err != nil {
+			return nil, err
+		}
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("agent unreachable on ports %v: %w", h.cfg.AgentPorts, lastErr)
 }
 
 func (h *ActionHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
@@ -108,22 +132,20 @@ func (h *ActionHandler) agentPost(worker *models.Worker, path string, payload in
 	if worker.IPAddress == "" {
 		return fmt.Errorf("worker has no IP address")
 	}
-	url := fmt.Sprintf("http://%s:9090%s", worker.IPAddress, path)
-
 	var body bytes.Buffer
 	if payload != nil {
 		json.NewEncoder(&body).Encode(payload)
 	}
 
-	req, err := http.NewRequest("POST", url, &body)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("X-API-Key", worker.APIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := h.agentDo(worker.IPAddress, func(base string) (*http.Request, error) {
+		req, err := http.NewRequest("POST", base+path, bytes.NewReader(body.Bytes()))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("X-API-Key", worker.APIKey)
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	})
 	if err != nil {
 		return err
 	}
@@ -203,15 +225,14 @@ func (h *ActionHandler) runRollingUpdate(workers []*models.Worker) {
 				})
 				return
 			case <-ticker.C:
-				url := fmt.Sprintf("http://%s:9090/health", wk.IPAddress)
-				req, err := http.NewRequest("GET", url, nil)
-				if err != nil {
-					continue
-				}
-				req.Header.Set("X-API-Key", wk.APIKey)
-
-				client := &http.Client{Timeout: 5 * time.Second}
-				resp, err := client.Do(req)
+				resp, err := h.agentDo(wk.IPAddress, func(base string) (*http.Request, error) {
+					req, err := http.NewRequest("GET", base+"/health", nil)
+					if err != nil {
+						return nil, err
+					}
+					req.Header.Set("X-API-Key", wk.APIKey)
+					return req, nil
+				})
 				if err != nil {
 					continue
 				}

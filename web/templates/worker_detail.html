@@ -109,11 +109,30 @@
 
 <div class="page-card-wide">
   <div class="section-title">Provision Log</div>
-  <div id="provision-log"
+  <!-- innerHTML, not outerHTML: an outerHTML swap would replace this element and
+       discard its own hx-* attributes, so polling would stop after one refresh. -->
+  <div id="provision-log" class="provision-log"
        hx-get="/api/workers/{{.Worker.ID}}/provision-log"
-       hx-trigger="load, every 3s"
-       hx-swap="outerHTML">
+       hx-trigger="load, every 1s"
+       hx-swap="innerHTML">
     {{template "provision-log" .ProvisionLogs}}
   </div>
 </div>
+
+<script>
+  // Follow the tail of the log, but only while the user is already at the bottom,
+  // so scrolling back to read an earlier failure isn't yanked away every second.
+  (function () {
+    var box = document.getElementById('provision-log');
+    if (!box) return;
+    var pinned = true;
+    box.addEventListener('scroll', function () {
+      pinned = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    });
+    box.addEventListener('htmx:afterSwap', function () {
+      if (pinned) box.scrollTop = box.scrollHeight;
+    });
+    box.scrollTop = box.scrollHeight;
+  })();
+</script>
 {{end}}

@@ -10,7 +10,7 @@
     dashboard_url: "{{ dashboard_url }}"
     worker_uuid: "{{ worker_uuid }}"
     agent_api_key: "{{ agent_api_key }}"
-    agent_port: "{{ agent_port | default('9090') }}"
+    agent_ports: "{{ agent_ports | default('19090,19091,19092') }}"
 
   roles:
     - docker
@@ -30,17 +30,28 @@
         enabled: yes
         state: started
 
-    - name: Enable and start Worker Agent
+    # Must be "restarted", not "started": every provisioning run issues a new
+    # API key into config.env, and a already-running agent would keep serving
+    # with the old one, failing the health check below with 401.
+    - name: Enable and restart Worker Agent
       systemd:
         name: worker-agent
         enabled: yes
-        state: started
+        state: restarted
 
+    # The agent binds the first free port in the list, so scan all of them rather
+    # than assuming one. Echoes the winning port into the provisioning log.
     - name: Wait for Worker Agent to be healthy
-      uri:
-        url: "http://localhost:{{ agent_port }}/health"
-        status_code: 200
-      register: result
-      until: result.status == 200
+      shell: |
+        for p in $(echo "{{ agent_ports }}" | tr ',' ' '); do
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "X-API-Key: {{ agent_api_key }}" \
+            "http://localhost:$p/health" 2>/dev/null || true)
+          if [ "$code" = "200" ]; then echo "agent healthy on port $p"; exit 0; fi
+        done
+        exit 1
+      register: agent_health
+      until: agent_health.rc == 0
       retries: 10
       delay: 3
+      changed_when: false

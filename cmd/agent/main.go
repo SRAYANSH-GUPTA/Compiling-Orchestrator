@@ -5,18 +5,19 @@ import (
 	"os"
 
 	"github.com/srayansh-gupta/compiling-orchestrator/internal/agent"
+	"github.com/srayansh-gupta/compiling-orchestrator/internal/config"
 )
 
 func main() {
 	workerUUID := mustEnv("WORKER_UUID")
 	apiKey := mustEnv("API_KEY")
 	dashboardURL := mustEnv("DASHBOARD_URL")
-	port := envOr("AGENT_PORT", "9090")
+	ports := config.ParsePorts(envOr("AGENT_PORTS", ""))
 
 	sender := agent.NewHeartbeatSender(dashboardURL, apiKey, workerUUID)
 	go sender.Start()
 
-	server := agent.NewServer(apiKey, workerUUID, port)
+	server := agent.NewServer(apiKey, workerUUID, ports)
 	if err := server.Run(); err != nil {
 		log.Fatalf("agent server: %v", err)
 	}

@@ -1,6 +1,8 @@
 ---
+# Generic `package` rather than `apt`: the names are identical on Debian and Arch,
+# and everything else in this role (HashiCorp zip, systemd unit) is distro-agnostic.
 - name: Install required packages
-  apt:
+  package:
     name:
       - unzip
       - curl

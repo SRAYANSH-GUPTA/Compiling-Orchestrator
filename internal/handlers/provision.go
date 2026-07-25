@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -139,16 +140,16 @@ func (h *ProvisionHandler) runProvision(workerID, ip, sshUser, sshPass, workerUU
 	}
 	logStep("ssh-test", "ok", "SSH connection successful")
 
-	logStep("os-check", "running", "Verifying Ubuntu...")
-	if err := provision.CheckUbuntu(ip, sshUser, sshPass); err != nil {
+	logStep("os-check", "running", "Verifying supported OS...")
+	if err := provision.CheckSupportedOS(ip, sshUser, sshPass); err != nil {
 		logStep("os-check", "failed", err.Error())
 		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
 		return
 	}
-	logStep("os-check", "ok", "Ubuntu verified")
+	logStep("os-check", "ok", "OS verified")
 
 	logStep("ansible", "running", "Running Ansible provisioning playbook...")
-	err := h.ansible.Provision(ctx, ip, sshUser, sshPass, workerUUID, apiKey, h.cfg.DashboardURL, h.cfg.AgentPort,
+	err := h.ansible.Provision(ctx, ip, sshUser, sshPass, workerUUID, apiKey, h.cfg.DashboardURL, strings.Join(h.cfg.AgentPorts, ","),
 		func(step, status, msg string) {
 			logStep(step, status, msg)
 		},
@@ -181,7 +182,7 @@ func (h *ProvisionHandler) runProvision(workerID, ip, sshUser, sshPass, workerUU
 	logStep("ssh-key", "ok", "SSH public key installed successfully")
 
 	logStep("ssh-disable-password", "running", "Disabling SSH password authentication on worker...")
-	if err := provision.DisablePasswordAuth(ip, sshUser, privKey); err != nil {
+	if err := provision.DisablePasswordAuth(ip, sshUser, privKey, sshPass); err != nil {
 		logStep("ssh-disable-password", "failed", "Failed to disable password auth: "+err.Error())
 		h.repo.UpdateStatus(ctx, workerID, models.StatusFailed)
 		return

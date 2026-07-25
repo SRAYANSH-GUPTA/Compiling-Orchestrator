@@ -60,6 +60,21 @@ func (c *SSHClient) Run(cmd string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
+// RunSudo runs cmd under sudo, feeding the password on stdin. A plain "sudo" over
+// a non-interactive SSH session has no TTY to prompt on and fails immediately;
+// -S reads from stdin instead and -p '' keeps the prompt out of the output.
+// Harmless when the account has passwordless sudo — the stdin is simply ignored.
+func (c *SSHClient) RunSudo(cmd, password string) (string, error) {
+	sess, err := c.client.NewSession()
+	if err != nil {
+		return "", err
+	}
+	defer sess.Close()
+	sess.Stdin = strings.NewReader(password + "\n")
+	out, err := sess.CombinedOutput("sudo -S -p '' " + cmd)
+	return strings.TrimSpace(string(out)), err
+}
+
 func TestConnection(host, username, password string) error {
 	c, err := Dial(host, username, password)
 	if err != nil {
@@ -77,7 +92,13 @@ func TestConnection(host, username, password string) error {
 	return nil
 }
 
-func CheckUbuntu(host, username, password string) error {
+// supportedDistros are the distributions the provisioning playbook knows how to
+// install packages on. Keep in sync with the ansible_os_family branches in the
+// docker role.
+var supportedDistros = []string{"ubuntu", "arch"}
+
+// CheckSupportedOS verifies the target runs a distribution the playbook supports.
+func CheckSupportedOS(host, username, password string) error {
 	c, err := Dial(host, username, password)
 	if err != nil {
 		return err
@@ -88,10 +109,14 @@ func CheckUbuntu(host, username, password string) error {
 	if err != nil {
 		return fmt.Errorf("os check failed: %w", err)
 	}
-	if !strings.Contains(strings.ToLower(out), "ubuntu") {
-		return fmt.Errorf("target is not Ubuntu (got: %s)", out)
+	got := strings.ToLower(out)
+	for _, distro := range supportedDistros {
+		if strings.Contains(got, distro) {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("unsupported distro, expected one of %s (got: %s)",
+		strings.Join(supportedDistros, ", "), out)
 }
 
 func InstallSSHKey(host, username, password, pubKey string) error {
@@ -114,7 +139,7 @@ func InstallSSHKey(host, username, password, pubKey string) error {
 	return nil
 }
 
-func DisablePasswordAuth(host, username, privateKey string) error {
+func DisablePasswordAuth(host, username, privateKey, sudoPass string) error {
 	c, err := DialWithKey(host, username, privateKey)
 	if err != nil {
 		return err
@@ -122,14 +147,25 @@ func DisablePasswordAuth(host, username, privateKey string) error {
 	defer c.Close()
 
 	cmds := []string{
-		`sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config`,
-		`sudo sed -i 's/^#*ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config`,
-		`sudo systemctl restart sshd || sudo service ssh restart`,
+		`sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config`,
+		`sed -i 's/^#*ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config`,
 	}
 	for _, cmd := range cmds {
-		if _, err := c.Run(cmd); err != nil {
-			return fmt.Errorf("disable password auth (%q): %w", cmd, err)
+		// Include the command output: sudo reports why it refused on stderr, and
+		// swallowing it leaves nothing to debug but an exit status.
+		if out, err := c.RunSudo(cmd, sudoPass); err != nil {
+			return fmt.Errorf("disable password auth (%q): %w: %s", cmd, err, out)
 		}
 	}
-	return nil
+
+	// The unit is "sshd" on Arch and "ssh" on Debian/Ubuntu; try both.
+	var restartErr error
+	for _, unit := range []string{"sshd", "ssh"} {
+		out, err := c.RunSudo("systemctl restart "+unit, sudoPass)
+		if err == nil {
+			return nil
+		}
+		restartErr = fmt.Errorf("restart %s: %w: %s", unit, err, out)
+	}
+	return fmt.Errorf("disable password auth: %w", restartErr)
 }

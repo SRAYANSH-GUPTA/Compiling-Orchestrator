@@ -1,9 +1,7 @@
 {{define "provision-log"}}
-<div id="provision-log" class="provision-log">
-  {{range .}}
-  <div class="log-line {{.Status}}">[{{formatTime2 .CreatedAt}}] [{{.Step}}] {{.Message}}</div>
-  {{else}}
-  <div class="log-line" style="color:var(--muted)">No provision logs yet.</div>
-  {{end}}
-</div>
+{{range .}}
+<div class="log-line {{.Status}}">[{{formatTime2 .CreatedAt}}] [{{.Step}}] {{.Message}}</div>
+{{else}}
+<div class="log-line" style="color:var(--muted)">No provision logs yet.</div>
+{{end}}
 {{end}}

@@ -2,7 +2,9 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os/exec"
 )
@@ -10,11 +12,11 @@ import (
 type Server struct {
 	apiKey     string
 	workerUUID string
-	port       string
+	ports      []string
 }
 
-func NewServer(apiKey, workerUUID, port string) *Server {
-	return &Server{apiKey: apiKey, workerUUID: workerUUID, port: port}
+func NewServer(apiKey, workerUUID string, ports []string) *Server {
+	return &Server{apiKey: apiKey, workerUUID: workerUUID, ports: ports}
 }
 
 func (s *Server) Run() error {
@@ -29,8 +31,21 @@ func (s *Server) Run() error {
 	mux.HandleFunc("POST /cleanup", s.auth(s.cleanup))
 	mux.HandleFunc("POST /shutdown", s.auth(s.shutdown))
 
-	log.Printf("agent listening on :%s", s.port)
-	return http.ListenAndServe(":"+s.port, mux)
+	// Bind the first free candidate port rather than failing outright: a worker
+	// may already be running something on the preferred one. The dashboard probes
+	// the same list, so it will find whichever we settled on.
+	var lastErr error
+	for _, port := range s.ports {
+		ln, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			log.Printf("agent: port %s unavailable (%v), trying next", port, err)
+			lastErr = err
+			continue
+		}
+		log.Printf("agent listening on :%s", port)
+		return http.Serve(ln, mux)
+	}
+	return fmt.Errorf("no available port among %v: %w", s.ports, lastErr)
 }
 
 func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {

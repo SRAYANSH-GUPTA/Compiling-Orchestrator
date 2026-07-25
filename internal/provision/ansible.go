@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -20,7 +21,8 @@ func NewAnsibleRunner(playbookDir string) *AnsibleRunner {
 	return &AnsibleRunner{PlaybookDir: playbookDir}
 }
 
-func (a *AnsibleRunner) Provision(ctx context.Context, ip, sshUser, sshPass, workerUUID, apiKey, dashboardURL, agentPort string, log LogFunc) error {
+// agentPorts is a comma-separated candidate list; the agent binds the first free one.
+func (a *AnsibleRunner) Provision(ctx context.Context, ip, sshUser, sshPass, workerUUID, apiKey, dashboardURL, agentPorts string, log LogFunc) error {
 	inventoryFile, err := a.writeInventory(ip, sshUser, sshPass)
 	if err != nil {
 		return fmt.Errorf("write inventory: %w", err)
@@ -33,13 +35,20 @@ func (a *AnsibleRunner) Provision(ctx context.Context, ip, sshUser, sshPass, wor
 		"-i", inventoryFile,
 		playbookPath,
 		"--extra-vars", fmt.Sprintf(
-			"worker_uuid=%s agent_api_key=%s dashboard_url=%s agent_port=%s",
-			workerUUID, apiKey, dashboardURL, agentPort,
+			"worker_uuid=%s agent_api_key=%s dashboard_url=%s agent_ports=%s",
+			workerUUID, apiKey, dashboardURL, agentPorts,
 		),
 	}
 
+	// Roles live alongside the playbook dir (ansible/roles), not inside it, so
+	// ansible's default <playbook_dir>/roles lookup would miss them.
+	rolesPath := filepath.Join(filepath.Dir(a.PlaybookDir), "roles")
+
 	cmd := exec.CommandContext(ctx, "ansible-playbook", args...)
-	cmd.Env = append(os.Environ(), "ANSIBLE_HOST_KEY_CHECKING=False")
+	cmd.Env = append(os.Environ(),
+		"ANSIBLE_HOST_KEY_CHECKING=False",
+		"ANSIBLE_ROLES_PATH="+rolesPath,
+	)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -75,8 +84,8 @@ func (a *AnsibleRunner) Provision(ctx context.Context, ip, sshUser, sshPass, wor
 
 func (a *AnsibleRunner) writeInventory(ip, sshUser, sshPass string) (string, error) {
 	content := fmt.Sprintf(
-		"[workers]\n%s ansible_user=%s ansible_password=%s ansible_become=yes ansible_become_method=sudo\n",
-		ip, sshUser, sshPass,
+		"[workers]\n%s ansible_user=%s ansible_password=%s ansible_become=yes ansible_become_method=sudo ansible_become_pass=%s\n",
+		ip, strconv.Quote(sshUser), strconv.Quote(sshPass), strconv.Quote(sshPass),
 	)
 	f, err := os.CreateTemp("", "ansible-inventory-*.ini")
 	if err != nil {

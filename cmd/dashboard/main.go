@@ -38,7 +38,7 @@ func main() {
 
 	repo := repository.NewWorkerRepo(pool)
 	ph := handlers.NewProvisionHandler(repo, cfg)
-	ah := handlers.NewActionHandler(repo)
+	ah := handlers.NewActionHandler(repo, cfg)
 	jgh := handlers.NewJudgeGatewayHandler(repo)
 
 	go handlers.StartOfflineWatcher(ctx, repo)
