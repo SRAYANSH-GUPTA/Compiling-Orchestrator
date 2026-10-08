@@ -82,3 +82,11 @@
     name: "{{ ansible_user }}"
     groups: docker
     append: yes
+
+# Started here rather than in post_tasks so later roles (judge0) can use Docker.
+# Debian's package starts it on install; Arch's does not.
+- name: Enable and start Docker
+  systemd:
+    name: docker
+    enabled: yes
+    state: started

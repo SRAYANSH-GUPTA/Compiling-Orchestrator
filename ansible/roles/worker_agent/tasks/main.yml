@@ -50,3 +50,32 @@
 - name: Reload systemd daemon
   systemd:
     daemon_reload: yes
+
+# Started here, not in the play's post_tasks: a failure in any later role (judge0)
+# aborts the play before post_tasks run, which would leave the agent installed but
+# never started — no heartbeats, and the worker never comes online.
+#
+# Must be "restarted", not "started": every provisioning run issues a new API key
+# into config.env, and an already-running agent would keep serving the old one.
+- name: Enable and restart Worker Agent
+  systemd:
+    name: worker-agent
+    enabled: yes
+    state: restarted
+
+# The agent binds the first free port in the list, so scan all of them rather
+# than assuming one. Echoes the winning port into the provisioning log.
+- name: Wait for Worker Agent to be healthy
+  shell: |
+    for p in $(echo "{{ agent_ports }}" | tr ',' ' '); do
+      code=$(curl -s -o /dev/null -w '%{http_code}' \
+        -H "X-API-Key: {{ agent_api_key }}" \
+        "http://localhost:$p/health" 2>/dev/null || true)
+      if [ "$code" = "200" ]; then echo "agent healthy on port $p"; exit 0; fi
+    done
+    exit 1
+  register: agent_health
+  until: agent_health.rc == 0
+  retries: 10
+  delay: 3
+  changed_when: false

@@ -1,0 +1,147 @@
+---
+# Judge0's sandbox (isolate) sets resource limits through cgroup v1. Ubuntu 24.04
+# and Arch both boot cgroup v2 by default, where those limits silently fail to
+# apply — submissions either error out or, worse, run unconstrained. Refuse to
+# deploy rather than leave a subtly broken judge in production.
+- name: Detect cgroup version
+  stat:
+    path: /sys/fs/cgroup/cgroup.controllers
+  register: cgroup_v2
+
+- name: Fail if host is on cgroup v2
+  fail:
+    msg: |
+      Judge0 requires cgroup v1, but this host is booted with cgroup v2.
+      On the worker, set in /etc/default/grub:
+        GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=0"
+      then regenerate grub and reboot:
+        Ubuntu: sudo update-grub && sudo reboot
+        Arch:   sudo grub-mkconfig -o /boot/grub/grub.cfg && sudo reboot
+  when: cgroup_v2.stat.exists
+
+- name: Create Judge0 directory
+  file:
+    path: "{{ judge0_dir }}"
+    state: directory
+    mode: '0750'
+
+# Postgres keeps its password in the data volume, so regenerating it on every run
+# would lock Judge0 out of its own database. Read back what a previous run stored
+# and only generate on first deploy. AUTHN_TOKEN is not covered by this — it lives
+# in config alone, so it can rotate freely on each provision.
+- name: Read existing Judge0 database password
+  slurp:
+    src: "{{ judge0_dir }}/.pgpass"
+  register: judge0_existing_pg
+  failed_when: false
+
+- name: Read existing Judge0 redis password
+  slurp:
+    src: "{{ judge0_dir }}/.redispass"
+  register: judge0_existing_redis
+  failed_when: false
+
+- name: Resolve Judge0 internal secrets
+  set_fact:
+    judge0_pg_password: >-
+      {{ (judge0_existing_pg.content | b64decode | trim)
+         if judge0_existing_pg.content is defined
+         else lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}
+    judge0_redis_password: >-
+      {{ (judge0_existing_redis.content | b64decode | trim)
+         if judge0_existing_redis.content is defined
+         else lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}
+
+- name: Persist Judge0 database password
+  copy:
+    dest: "{{ judge0_dir }}/.pgpass"
+    content: "{{ judge0_pg_password }}"
+    mode: '0600'
+
+- name: Persist Judge0 redis password
+  copy:
+    dest: "{{ judge0_dir }}/.redispass"
+    content: "{{ judge0_redis_password }}"
+    mode: '0600'
+
+# AUTHN_TOKEN is the worker's agent API key, which the dashboard already stores
+# and sends as X-Auth-Token. Without it, port 2358 is open code execution.
+- name: Write Judge0 configuration
+  copy:
+    dest: "{{ judge0_dir }}/judge0.conf"
+    mode: '0600'
+    content: |
+      REDIS_HOST=redis
+      REDIS_PASSWORD={{ judge0_redis_password }}
+      POSTGRES_HOST=db
+      POSTGRES_DB=judge0
+      POSTGRES_USER=judge0
+      POSTGRES_PASSWORD={{ judge0_pg_password }}
+      AUTHN_HEADER=X-Auth-Token
+      AUTHN_TOKEN={{ agent_api_key }}
+      ENABLE_WAIT_RESULT=true
+  register: judge0_config
+
+- name: Write Judge0 compose file
+  copy:
+    dest: "{{ judge0_dir }}/docker-compose.yml"
+    mode: '0640'
+    content: |
+      services:
+        server:
+          image: judge0/judge0:{{ judge0_version }}
+          container_name: judge0-server
+          volumes:
+            - ./judge0.conf:/judge0.conf:ro
+          ports:
+            - "{{ judge0_port }}:2358"
+          privileged: true
+          restart: always
+          depends_on:
+            - db
+            - redis
+
+        workers:
+          image: judge0/judge0:{{ judge0_version }}
+          container_name: judge0-workers
+          command: ["./scripts/workers"]
+          volumes:
+            - ./judge0.conf:/judge0.conf:ro
+          privileged: true
+          restart: always
+          depends_on:
+            - db
+            - redis
+
+        db:
+          image: postgres:{{ judge0_postgres_version }}
+          container_name: judge0-db
+          env_file: judge0.conf
+          volumes:
+            - judge0-data:/var/lib/postgresql/data
+          restart: always
+
+        redis:
+          image: redis:{{ judge0_redis_version }}
+          container_name: judge0-redis
+          command: ["redis-server", "--appendonly", "no", "--requirepass", "{{ judge0_redis_password }}"]
+          restart: always
+
+      volumes:
+        judge0-data:
+  register: judge0_compose
+
+- name: Start Judge0
+  command: docker compose up -d --remove-orphans
+  args:
+    chdir: "{{ judge0_dir }}"
+  register: judge0_up
+  changed_when: "'Started' in judge0_up.stderr or 'Created' in judge0_up.stderr"
+
+# Config changes only reach the containers on recreate, and `up -d` will not
+# restart the server for a bind-mounted file whose contents changed.
+- name: Restart Judge0 after config change
+  command: docker compose restart server workers
+  args:
+    chdir: "{{ judge0_dir }}"
+  when: judge0_config.changed or judge0_compose.changed

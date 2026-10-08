@@ -67,3 +67,11 @@
 - name: Reload systemd
   systemd:
     daemon_reload: yes
+
+# Started in-role for the same reason as the agent: post_tasks are skipped when a
+# later role fails.
+- name: Enable and start Nomad
+  systemd:
+    name: nomad
+    enabled: yes
+    state: started

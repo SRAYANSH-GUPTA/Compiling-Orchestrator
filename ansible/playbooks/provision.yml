@@ -11,47 +11,30 @@
     worker_uuid: "{{ worker_uuid }}"
     agent_api_key: "{{ agent_api_key }}"
     agent_ports: "{{ agent_ports | default('19090,19091,19092') }}"
+    judge0_dir: /opt/judge0
+    # Pinned deliberately: a floating tag lets an unattended pull change the
+    # runtime under you. These are the versions Judge0 1.13.1 is tested against.
+    judge0_version: "1.13.1"
+    judge0_postgres_version: "13.0"
+    judge0_redis_version: "6.0"
+    judge0_port: 2358
 
   roles:
     - docker
     - nomad_client
     - worker_agent
+    - judge0
 
   post_tasks:
-    - name: Enable and start Docker
-      systemd:
-        name: docker
-        enabled: yes
-        state: started
-
-    - name: Enable and start Nomad
-      systemd:
-        name: nomad
-        enabled: yes
-        state: started
-
-    # Must be "restarted", not "started": every provisioning run issues a new
-    # API key into config.env, and a already-running agent would keep serving
-    # with the old one, failing the health check below with 401.
-    - name: Enable and restart Worker Agent
-      systemd:
-        name: worker-agent
-        enabled: yes
-        state: restarted
-
-    # The agent binds the first free port in the list, so scan all of them rather
-    # than assuming one. Echoes the winning port into the provisioning log.
-    - name: Wait for Worker Agent to be healthy
-      shell: |
-        for p in $(echo "{{ agent_ports }}" | tr ',' ' '); do
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
-            -H "X-API-Key: {{ agent_api_key }}" \
-            "http://localhost:$p/health" 2>/dev/null || true)
-          if [ "$code" = "200" ]; then echo "agent healthy on port $p"; exit 0; fi
-        done
-        exit 1
-      register: agent_health
-      until: agent_health.rc == 0
-      retries: 10
-      delay: 3
-      changed_when: false
+    # Judge0 takes a while on first boot: it runs database migrations before the
+    # API starts answering. Allow noticeably longer than the agent check.
+    - name: Wait for Judge0 to be healthy
+      uri:
+        url: "http://localhost:{{ judge0_port }}/languages"
+        headers:
+          X-Auth-Token: "{{ agent_api_key }}"
+        status_code: 200
+      register: judge0_health
+      until: judge0_health.status == 200
+      retries: 30
+      delay: 5

@@ -184,6 +184,9 @@ func (h *JudgeGatewayHandler) sendToWorker(ctx context.Context, wk *models.Worke
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	// Judge0 is configured with AUTHN_TOKEN set to the worker's agent API key,
+	// so :2358 is not an unauthenticated code-execution endpoint.
+	httpReq.Header.Set("X-Auth-Token", wk.APIKey)
 
 	client := &http.Client{Timeout: 45 * time.Second}
 	resp, err := client.Do(httpReq)
